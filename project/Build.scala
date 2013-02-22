@@ -16,6 +16,17 @@ object SlickBuild extends Build {
     libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _ % "optional")
   )
 
+  val paradiseSettings = Defaults.defaultSettings ++ Seq(
+    organization := "org.scalamacros",
+    version := "1.0.0",
+    scalacOptions ++= Seq(),
+    scalaVersion := "2.11.0-SNAPSHOT",
+    scalaOrganization := "org.scala-lang.macro-paradise",
+    resolvers += Resolver.sonatypeRepo("snapshots"),
+	libraryDependencies <+= (scalaVersion)("org.scala-lang.macro-paradise" % "scala-reflect" % _),
+	libraryDependencies <+= (scalaVersion)("org.scala-lang.macro-paradise" % "scala-compiler" % _ % "optional")
+  )
+
   def localScalaSettings(path: String): Seq[Setting[_]] = Seq(
     scalaVersion := "2.10.0-unknown",
     scalaBinaryVersion := "2.10.0-unknown",
@@ -29,7 +40,8 @@ object SlickBuild extends Build {
 
   val scalaSettings = {
     sys.props("scala.home.local") match {
-      case null => publishedScalaSettings
+      //case null => publishedScalaSettings
+	  case null => paradiseSettings
       case path =>
         scala.Console.err.println("Using local scala at " + path)
         localScalaSettings(path)
