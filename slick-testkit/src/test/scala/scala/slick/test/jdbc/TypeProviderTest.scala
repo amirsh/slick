@@ -27,7 +27,7 @@ class TypeProviderTest(val tdb: TestDB) extends DBTest {
   import Database.threadLocalSession
 
   @Test def test() {
-    object Db1 extends TypeProvider.Db("", "configuration-test")
+    object Db1 extends TypeProvider.Db("", "gofortest!")
     import Db1.driver.simple._
     import Database.threadLocalSession
     Db1.database.withSession {

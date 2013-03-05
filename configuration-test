@@ -1,3 +1,0 @@
-org.h2.Driver
-jdbc:h2:mem:test1;INIT=runscript from 'create.sql'\;runscript from 'populate.sql'
-scala.slick.driver.H2Driver

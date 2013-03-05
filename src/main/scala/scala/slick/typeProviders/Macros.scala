@@ -6,6 +6,7 @@ import java.io.File
 import scala.slick.driver.JdbcProfile
 import scala.slick.driver.JdbcDriver
 import scala.slick.jdbc.JdbcBackend
+import com.typesafe.config.ConfigFactory
 
 object Macros {
   def DbImpl(c: Context)(url: c.Expr[String], configurationFileName: c.Expr[String]) = {
@@ -15,9 +16,9 @@ object Macros {
     val macroHelper = new {val context: c.type = c} with MacroHelpers
     val runtimeMirror = scala.reflect.runtime.universe.runtimeMirror(Macros.this.getClass.getClassLoader)
 
-    val Expr(Literal(Constant(configFileName: String))) = configurationFileName
+    
       
-	val (jdbcClass, urlConfig, slickDriverObject) = {
+	/*val (jdbcClass, urlConfig, slickDriverObject) = {
 	    val default = scala.Array("org.h2.Driver", "jdbc:h2:", "scala.slick.driver.H2Driver")
 	    val lines = try {
 	      val file = scala.io.Source.fromFile(configFileName)
@@ -35,15 +36,42 @@ object Macros {
 		val urlConfig = if (lines.size > 1) lines(1) else default(1)
 		val slickDriverObject = if (lines.size > 2) lines(2) else default(2)
 		(jdbcClass, urlConfig, slickDriverObject)
-	}
+	}*/
+    
+    val (jdbcClass, urlConfig, slickDriverObject, userForConnection, passForConnection) = {
+      val testDbs = "test-dbs/type-provider/conf/"
+      val confFile = {
+        try {
+          val Expr(Literal(Constant(configFileName: String))) = configurationFileName
+          val confFileName = if (configFileName.endsWith(".conf")) configFileName else configFileName + ".conf"
+          val file = new File(confFileName)
+          if (file.isFile() && file.exists())
+            file
+          else {
+            val newFile = new File(testDbs + confFileName)
+            if (newFile.isFile() && newFile.exists())
+              newFile
+            else
+              throw new Exception()
+          }
+        } catch {
+          case _: Throwable => new File(testDbs + "type-providers-test.conf")
+        }
+      }
+      val conf = ConfigFactory.parseFile(confFile)
+      println(conf)
+      @inline def c(key: String): String = try {
+        conf.getString(key)
+      } catch {
+        case _: Throwable => ""
+      }
+      (c("jdbc-driver"), c("url"), c("slick-object"), c("username"), c("password"))
+    }
 
     val connectionString: String = {
       val Expr(Literal(Constant(sUrl: String))) = url
       urlConfig + sUrl
     }
-    
-    val userForConnection = if (connectionString.endsWith("coffees")) "sa" else ""
-    val passForConnection = ""
     
     def createConnection(): Connection = {
       val conString = connectionString

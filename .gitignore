@@ -7,6 +7,9 @@ target/
 *.pyc
 /\.target/
 /\.cache
-/\.project
-/\.classpath
-/\.settings/
+\.project
+\.classpath
+\.settings/
+.DS_Store
+/lib
+*.swp

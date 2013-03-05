@@ -1,3 +1,0 @@
-org.hsqldb.jdbcDriver
-jdbc:hsqldb:/Users/Amir/thesis/slick_paradise/suppliers/
-scala.slick.driver.HsqldbDriver

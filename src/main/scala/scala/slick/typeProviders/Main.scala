@@ -1,5 +1,7 @@
 package scala.slick.typeProviders
 
+import com.typesafe.config.ConfigFactory
+
 /**
  * A simple example that uses statically typed queries against an in-memory
  * H2 database. The example data comes from Oracle's JDBC tutorial at
@@ -97,7 +99,7 @@ object Main2 {
   //  println(expr.actualType)
 }
 
-object Main3 extends App {
+object Main3 {
 
   // Use H2Driver to connect to an H2 database
   import scala.slick.driver.H2Driver.simple._
@@ -144,9 +146,9 @@ object Main3 extends App {
     //    })
     //    (Suppliers.ddl ++ Coffees.ddl).create
 
-//        val s1 = Supplier(101, "Acme, Inc.", "99 Market Street", "Groundsville", "CA", "95199")
-//        val s2 = Supplier(49, "Superior Coffee", "1 Party Place", "Mendocino", "CA", "95460")
-//        val s3 = Supplier(150, "The High Ground", "100 Coffee Lane", "Meadows", "CA", "93966")
+    //        val s1 = Supplier(101, "Acme, Inc.", "99 Market Street", "Groundsville", "CA", "95199")
+    //        val s2 = Supplier(49, "Superior Coffee", "1 Party Place", "Mendocino", "CA", "95460")
+    //        val s3 = Supplier(150, "The High Ground", "100 Coffee Lane", "Meadows", "CA", "93966")
     //    Suppliers.insert(s1)
     //    Suppliers.insert(s2)
     //    Suppliers.insert(s3)
@@ -155,9 +157,25 @@ object Main3 extends App {
     Query(Suppliers) foreach { sup =>
       println(sup)
     }
-    val q = for (c <- Coffees) yield(c.name)
+    val q = for (c <- Coffees) yield (c.name)
     println(q.list)
   }
+}
+
+object Main4 extends App {
+
+  val conf = com.typesafe.config.ConfigFactory.load("type-providers-h2")
+  object ConfigHelper {
+    def get(key: String) = {
+      try {
+        conf.getString(key)
+      } catch {
+        case _ => ""
+      }
+
+    }
+  }
+  println(conf.getString("username"))
 }
 
 object OldTests1 {

@@ -1,3 +1,0 @@
-org.h2.Driver
-jdbc:h2:/Users/Amir/thesis/slick_paradise/coffees/
-scala.slick.driver.H2Driver
