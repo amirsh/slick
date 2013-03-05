@@ -1,0 +1,49 @@
+package scala.slick.test.jdbc
+
+import java.io.PrintWriter
+import org.junit.Test
+import org.junit.Assert._
+import scala.slick.driver.{ H2Driver, PostgresDriver }
+import scala.slick.jdbc.meta._
+import scala.slick.jdbc.{ StaticQuery => Q }
+import scala.slick.testutil._
+import scala.slick.testutil.TestDBs._
+import com.typesafe.slick.testkit.util.TestDB
+import scala.slick.typeProviders.TypeProvider
+
+object TypeProviderH2Mem extends (String => TestDB) {
+  def apply(str: String) = new TestDB("h2mem", H2Driver) {
+    val url = "jdbc:h2:mem:test1;INIT=runscript from 'create.sql'\\;runscript from 'populate.sql'"
+    val jdbcDriver = "org.h2.Driver"
+    override def isPersistent = false
+    override lazy val capabilities = driver.capabilities + TestDB.plainSql + TestDB.plainSqlWide
+  }
+}
+
+object TypeProviderTest extends DBTestObject(TypeProviderH2Mem)
+
+class TypeProviderTest(val tdb: TestDB) extends DBTest {
+  import tdb.profile.simple._
+  import Database.threadLocalSession
+
+  @Test def test() {
+    object Db1 extends TypeProvider.Db("", "configuration-test")
+    import Db1.driver.simple._
+    import Database.threadLocalSession
+    Db1.database.withSession {
+      val q1 = Query(Db1.Suppliers.length)
+      assertEquals("Size of Suppliers before change",
+          q1.first, 3)
+      Db1.Suppliers.insert(Db1.Supplier(1, "1", "2", "3", "4", "5"))
+      val q2 = Query(Db1.Suppliers.length)
+      assertEquals("Size of Suppliers after change",
+          q2.first, 4)
+      val q3 = Query(Db1.Coffees.length)
+      assertEquals("Size of Coffees",
+          q3.first, 1)
+      val r = Query(Db1.Coffees).list.head
+      val c: Db1.Coffee = r
+      assertEquals("First element of Coffees", c, Db1.Coffee("coffee", 1, 2.3, 4, 5))
+    }
+  }
+}

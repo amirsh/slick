@@ -1,0 +1,3 @@
+org.hsqldb.jdbcDriver
+jdbc:hsqldb:/Users/Amir/thesis/slick_paradise/coffees/
+scala.slick.driver.HsqldbDriver

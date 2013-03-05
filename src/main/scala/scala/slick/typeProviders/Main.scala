@@ -70,20 +70,55 @@ object Main1 {
 
 object Main2 extends App {
   import scala.reflect.runtime.universe._
-  case class Supplier(id: Int, name: String, flag: Int)
+  
+  val expr = reify {
+	  import scala.reflect.runtime.universe._
+	  
+	  ;
+  }
+  val s = showRaw(expr)
+  println(s)
+  println(expr.actualType)
+}
 
+object OldTests1{
+  import scala.reflect.runtime.universe._
+  case class Supplier(id: Int, name: String, flag: Int)
+  
   val expr = reify {
 
     // Definition of the SUPPLIERS table
-    object Suppliers extends Tab[Supplier]("SUPPLIERS") {
+    /*object Suppliers extends Tab[Supplier]("SUPPLIERS") {
       def id = column[Int]("SUP_ID")
       def name = column[String]("SUP_NAME")
       def flag = column[Int]("SUP_FLAG")
       def * = id ~ name ~ flag <> (Supplier, Supplier.unapply _)
 //      def * = null
+    }*/
+    
+    class A {
+      val a = new A
+      import a._
     }
   }
   val s = showRaw(expr)
-  
   println(s)
+  
+  val n1 = This(newTypeName("a"))
+  val n2 = This(newTypeName("b"))
+  val s1 = Select(Select(n1, newTermName("c")), newTermName("d"))
+  val s2 = Select(s1, newTermName("e"))
+  val t = List(s1, s2)
+//  val t3 = t.substituteThis(n1.symbol, n2)
+  val t3 = new Transformer{
+    override def transform(tree: Tree): Tree = {
+//      tree
+      tree match {
+        case i@This(_) if i eq n1 => n2
+        case _ => super.transform(tree)
+      }
+    }
+  }.transformTrees(t)
+  println(showRaw(t))
+  println(showRaw(t3))
 }
