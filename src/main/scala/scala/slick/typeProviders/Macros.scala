@@ -8,13 +8,14 @@ import scala.slick.driver.JdbcDriver
 import scala.slick.jdbc.JdbcBackend
 
 object Macros {
-  def DbImpl(c: Context)(url: c.Expr[String]) = {
+  def DbImpl(c: Context)(url: c.Expr[String], configurationFileName: c.Expr[String]) = {
     import c.universe._
     import Flag._
     
     val macroHelper = new {val context: c.type = c} with MacroHelpers
+    val runtimeMirror = scala.reflect.runtime.universe.runtimeMirror(Macros.this.getClass.getClassLoader)
 
-    val configFileName = "configuration"
+    val Expr(Literal(Constant(configFileName: String))) = configurationFileName
       
 	val (jdbcClass, urlConfig, slickDriverObject) = {
 	    val default = scala.Array("org.h2.Driver", "jdbc:h2:", "scala.slick.driver.H2Driver")
@@ -42,18 +43,49 @@ object Macros {
     }
     
     val userForConnection = if (connectionString.endsWith("coffees")) "sa" else ""
+    val passForConnection = ""
     
     def createConnection(): Connection = {
       val conString = connectionString
       Class.forName(jdbcClass)
-      DriverManager.getConnection(connectionString, userForConnection, "")
+      DriverManager.getConnection(connectionString, userForConnection, passForConnection)
+    }
+    
+    def createDriver(): JdbcDriver = {
+      val conString = connectionString
+      val module = runtimeMirror.staticModule(slickDriverObject)
+      val reflectedModule = runtimeMirror.reflectModule(module)
+      val driver = reflectedModule.instance.asInstanceOf[JdbcDriver]
+      driver
     }
     
 
+//    def generateCodeForTables(): List[Tree] = {
+//      val conn = createConnection
+//      try {
+//        val tables = Jdbc.tables(conn)
+//      	tables.flatMap(table => {
+//          // generate the dto case class
+//          val caseClass = macroHelper.tableToCaseClass(table)
+//          // generate the table object
+//          val tableModule = macroHelper.tableToModule(table, caseClass)
+//
+//          // that's it
+//          List(caseClass, tableModule)
+//        })
+//      } finally {
+//        conn.close()
+//      }
+//    }
+    
     def generateCodeForTables(): List[Tree] = {
-      val conn = createConnection
-      try {
-        val tables = Jdbc.tables(conn)
+      val driver = createDriver()
+      val db = driver.simple.Database.forURL(connectionString, driver = jdbcClass, 
+            user = userForConnection, password = passForConnection)
+//      val conn = db.createConnection()
+//      try {
+        val tables = Jdbc.tables(driver, db)
+//        		val tables = Jdbc.tables(conn)
       	tables.flatMap(table => {
           // generate the dto case class
           val caseClass = macroHelper.tableToCaseClass(table)
@@ -63,9 +95,9 @@ object Macros {
           // that's it
           List(caseClass, tableModule)
         })
-      } finally {
-        conn.close()
-      }
+//      } finally {
+//        conn.close()
+//      }
     }
     
     val slickDriverTree = c.parse(slickDriverObject)
@@ -79,7 +111,8 @@ object Macros {
       class CONTAINER {
     	importExpr.splice // import statement
     	val driver = slickDriverExpr.splice
-        val database = databaseExpr.splice.forURL(c.literal(connectionString).splice, driver = c.literal(jdbcClass).splice, user = c.literal(userForConnection).splice, password = "")
+        val database = databaseExpr.splice.forURL(c.literal(connectionString).splice, driver = c.literal(jdbcClass).splice, 
+            user = c.literal(userForConnection).splice, password = c.literal(passForConnection).splice)
         // generated code will be spliced here
       }
     }
