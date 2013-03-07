@@ -45,7 +45,8 @@ trait MacroHelpers{
 	}
 	
 	def createTuple[T <: Tree](elems: List[T]) = 
-	  Apply(Select(Ident(TermName("scala.Tuple"+elems.length)), TermName("apply")), elems)
+//	  Apply(Select(Ident(TermName("scala.Tuple"+elems.length)), TermName("apply")), elems)
+	  Apply(Select(context.parse("scala.Tuple"+elems.length), TermName("apply")), elems)
 	
     def createTupleOrSingleton[T <: Tree](elems: List[T]) = 
       if (elems.length == 1)  
@@ -84,7 +85,7 @@ trait MacroHelpers{
 //	  val fkDeleteRule = Select(Ident(TermName("scala.slick.lifted.ForeignKeyAction")), TermName(fk.deleteRule.toString))
 	  val fkUpdateRule = Select(context.parse("scala.slick.lifted.ForeignKeyAction"), TermName(fk.updateRule.toString))
 	  val fkDeleteRule = Select(context.parse("scala.slick.lifted.ForeignKeyAction"), TermName(fk.deleteRule.toString))
-	  DefDef(Modifiers(), TermName("fk"+tableName+fk.pkTable.scalaName), List(), List(), TypeTree(), Apply(Apply(Select(This(TypeName(tableName)), TermName("foreignKey")), List(fkName, fkSourceColumns, fkTargetTable)), List(Block(List(), fkTargetColumns), fkUpdateRule, fkDeleteRule)))
+	  DefDef(Modifiers(), TermName("fk"+fk.pkTable.scalaName), List(), List(), TypeTree(), Apply(Apply(Select(This(TypeName(tableName)), TermName("foreignKey")), List(fkName, fkSourceColumns, fkTargetTable)), List(Block(List(), fkTargetColumns), fkUpdateRule, fkDeleteRule)))
 	}
 	
 	def tableToModule(table: Schema, caseClass: ClassDef) = {

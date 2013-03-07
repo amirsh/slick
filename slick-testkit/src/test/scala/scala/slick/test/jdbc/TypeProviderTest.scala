@@ -23,11 +23,8 @@ object TypeProviderH2Mem extends (String => TestDB) {
 object TypeProviderTest extends DBTestObject(TypeProviderH2Mem)
 
 class TypeProviderTest(val tdb: TestDB) extends DBTest {
-  import tdb.profile.simple._
-  import Database.threadLocalSession
-
-  @Test def test() {
-    object Db1 extends TypeProvider.Db("", "gofortest!")
+  @Test def simpleTest() {
+    object Db1 extends TypeProvider.Db("", "type-providers-test")
     import Db1.driver.simple._
     import Database.threadLocalSession
     Db1.database.withSession {
@@ -44,6 +41,21 @@ class TypeProviderTest(val tdb: TestDB) extends DBTest {
       val r = Query(Db1.Coffees).list.head
       val c: Db1.Coffee = r
       assertEquals("First element of Coffees", c, Db1.Coffee("coffee", 1, 2.3, 4, 5))
+    }
+  }
+  
+  @Test def fkTest() {
+    object Db1 extends TypeProvider.Db("", "type-providers-test-fk")
+    import Db1.driver.simple._
+    import Database.threadLocalSession
+    Db1.database.withSession {
+      val tables = MTable.getTables(Some(""), Some(""), None, None).list
+      val a = tables.find(_.name.name equals "a").get
+      val b = tables.find(_.name.name equals "b").get
+      assertEquals("# of FKs of 'a' should be 2",
+          a.getImportedKeys.list.length, 2)
+      assertEquals("# of FKs of 'b' should be 0",
+          b.getImportedKeys.list.length, 0)
     }
   }
 }
