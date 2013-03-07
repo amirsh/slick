@@ -8,54 +8,55 @@ import _root_.scala.slick.jdbc.JdbcBackend
 import _root_.scala.slick.jdbc.meta.MTable
 import _root_.scala.slick.driver.HsqldbDriver
 import _root_.scala.slick.driver.H2Driver
+import scala.collection.mutable.ArrayBuffer
 
 object Jdbc {
-//  def list(conn: Connection, query: String): List[ListMap[String, Any]] = {
-//    val stmt = conn.createStatement()
-//    try {
-//      val rs = stmt.executeQuery(query)
-//      val buf = ListBuffer[ListMap[String, Any]]()
-//      while (rs.next()) {
-//        val record = ListMap[String, Any]()
-//        for (i <- 1 to rs.getMetaData.getColumnCount) {
-//          record += (rs.getMetaData.getColumnName(i).toLowerCase -> rs.getObject(i))
-//        }
-//        buf += record
-//      }
-//      buf.toList
-//    } finally {
-//      stmt.close()
-//    }
-//  }
-//
-//  def columns(conn: Connection)(tbl: String) =
-//    list(conn, "show columns from " + tbl).map(row => {
-//      val columnName = row("column_name").asInstanceOf[String]
-//      val columnType = row("type").asInstanceOf[String]
-//      Column(columnName, columnType)
-//    })
-//
-//  def tables(conn: Connection) = {
-//    val tableNames = list(conn, "show tables").map(_("table_name").asInstanceOf[String])
-//    tableNames map (tbl => Schema(tbl, columns(conn)(tbl)))
-//  }
-  
   def tables(driver: JdbcDriver, db: JdbcBackend#DatabaseDef) = {
     import driver.simple.Database.threadLocalSession
-//    val (cat: Option[String], schemaPattern: Option[String], namePattern: Option[String],
-//    types: Option[Seq[String]]) = driver match {
-//      case hsql: HsqldbDriver => (None, None, Some("%"), Some(Seq("TABLE")))
-//      case h2: H2Driver => (Some(""), Some(""), None, None)
-//      case _ => (None, None, None, None)
-//    }
     db withSession {
-//      val tables = MTable.getTables(cat, schemaPattern, namePattern, types).list
-      val tables = driver.getTables.list
-      tables map (t => {
+      import Column._
+      val tables = driver.getTables.list map (t => {
         val columns = t.getColumns.list map (c => Column(c.column, driver.scalaTypeForColumn(c)))
-        Schema(t.name.name, columns)
+
+        (t, Schema(t.name.name, columns))
+      })
+      def getTable(tableName: String): Option[Schema] =
+        tables.find {
+          case (t, s) =>
+            s.table eq tableName
+        }.map(_._2)
+      def getSchema(tableName: String): Schema =
+        getTable(tableName).get
+      def getColumnOfTable(tableName: String)(columnName: String): Option[Column] =
+        getTable(tableName).map(s => getColumnOfSchema(s)(columnName)).head
+      def getColumnOfSchema(schema: Schema)(columnName: String): Option[Column] =
+        schema.columns.find(c => c.name eq columnName)
+      tables foreach {
+        case (t, schema) =>
+          {
+            def getColumn: String => Option[Column] = getColumnOfSchema(schema) _
+            val primaryKeys = t.getPrimaryKeys.list flatMap (p => getColumn(p.column))
+            val pkConstraint = PrimaryKey(primaryKeys)
+            schema += pkConstraint
+            val fks = t.getImportedKeys.list
+            val grouped = fks.groupBy(x =>
+              (getSchema(x.pkTable.name), getSchema(x.fkTable.name))).mapValues(v => {
+              val fields =
+                v.map(x => {
+                  val pkColumn = getColumnOfTable(x.pkTable.name)(x.pkColumn).get
+                  val fkColumn = getColumnOfTable(x.fkTable.name)(x.fkColumn).get
+                  (pkColumn, fkColumn)
+                })
+              val head = v.head
+              val (updateRule, deleteRule) = (head.updateRule, head.deleteRule)
+              (fields, updateRule, deleteRule)
+            })
+            val fkConstraints = grouped.map(fk => ForeignKey(fk._1._1, fk._1._2, fk._2._1, fk._2._2, fk._2._3)).toList
+            schema ++= fkConstraints
+          }
+
       }
-      )
+      tables.map(_._2)
     }
   }
 }

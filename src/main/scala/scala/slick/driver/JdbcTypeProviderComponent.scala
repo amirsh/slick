@@ -7,9 +7,12 @@ import scala.slick.jdbc.meta.MColumn
 trait JdbcTypeProviderComponent { driver: JdbcDriver =>
   def getTables: UnitInvoker[MTable] = MTable.getTables(Some(""), Some(""), None, None)
   
-  def scalaTypeForColumn(column: MColumn) = {
+  def scalaTypeForColumn(column: MColumn): String =
+    if(column.nullable.getOrElse(true)) "Option[" + scalaTypeForSqlType(column.sqlType) + "]" else scalaTypeForSqlType(column.sqlType)
+
+  def scalaTypeForSqlType(sqlType: Int): String = {
     import java.sql.Types._
-    column.sqlType match {
+    sqlType match {
       case BIT | BOOLEAN => "Boolean"
       case TINYINT => "Byte"
       case SMALLINT => "Short"
@@ -28,5 +31,4 @@ trait JdbcTypeProviderComponent { driver: JdbcDriver =>
       case _ => "AnyRef"
     }
   }
-  
 }

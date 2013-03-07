@@ -1,6 +1,7 @@
 package scala.slick.typeProviders
 
 import com.typesafe.config.ConfigFactory
+import scala.slick.lifted.ForeignKeyAction
 
 /**
  * A simple example that uses statically typed queries against an in-memory
@@ -99,7 +100,7 @@ object Main2 {
   //  println(expr.actualType)
 }
 
-object Main3 {
+object Main3 extends App{
 
   // Use H2Driver to connect to an H2 database
   import scala.slick.driver.H2Driver.simple._
@@ -108,61 +109,49 @@ object Main3 {
   import _root_.scala.slick.jdbc.meta.MTable
   import _root_.scala.slick.jdbc.meta.MColumn
 
-  case class Supplier(id: Int, name: String, street: String, city: String, state: String, zip: String)
+  object A extends Table[(Int, Int, String)]("a") {
+      def k1 = column[Int]("k1")
+      def k2 = column[Int]("k2")
+      def s = column[String]("s")
+      def * = k1 ~ k2 ~ s
+      def bFK = foreignKey("b_fk", (k1, k2), B)(b => (b.f1, b.f2), onDelete = ForeignKeyAction.Cascade)
+    }
 
-  // Definition of the SUPPLIERS table
-  object Suppliers extends Tab[Supplier]("SUPPLIERS") {
-    def id = column[Int]("SUP_ID", O.PrimaryKey) // This is the primary key column
-    def name = column[String]("SUP_NAME")
-    def street = column[String]("STREET")
-    def city = column[String]("CITY")
-    def state = column[String]("STATE")
-    def zip = column[String]("ZIP")
-    // Every table needs a * projection with the same type as the table's type parameter
-    def * = id ~ name ~ street ~ city ~ state ~ zip <> (Supplier, Supplier.unapply _)
-  }
+    object B extends Table[(Int, Int, String)]("b") {
+      def f1 = column[Int]("f1")
+      def f2 = column[Int]("f2")
+      def s = column[String]("s")
+      def * = f1 ~ f2 ~ s
+      def bIdx1 = index("b_idx1", (f1, f2), unique = true)
+    }
 
-  // Definition of the COFFEES table
-  object Coffees extends Tab[(String, Int, Double, Int, Int)]("COFFEES") {
-    def name = column[String]("COF_NAME", O.PrimaryKey)
-    def supID = column[Int]("SUP_ID")
-    def price = column[Double]("PRICE")
-    def sales = column[Int]("SALES")
-    def total = column[Int]("TOTAL")
-    def * = name ~ supID ~ price ~ sales ~ total
-    // A reified foreign key relation that can be navigated to create a join
-    def supplier = foreignKey("SUP_FK", supID, Suppliers)(_.id)
-  }
-
-  val d2 = Database.forURL("jdbc:h2:mem:test1;INIT=runscript from 'create.sql'\\;runscript from 'populate.sql'", driver = "org.h2.Driver")
+//  val d2 = Database.forURL("jdbc:h2:mem:test1;INIT=runscript from 'create.sql'\\;runscript from 'populate.sql'", driver = "org.h2.Driver")
+  val d2 = Database.forURL("jdbc:h2:mem:test1", driver = "org.h2.Driver")
 
   // Connect to the database and execute the following block within a session
   d2 withSession {
+    (A.ddl ++ B.ddl).create
+    println((A.ddl ++ B.ddl).createStatements.mkString("\n"))
     //	val tables = MTable.getTables(None, None, Some("%"), Some(Seq("TABLE"))).list 
-    //    val tables = MTable.getTables(None, None, None, None).list
-    //    tables foreach (t => {
-    //      println(t.name.name)
-    //      println(t.getColumns.list.map(c => c.typeName).mkString("\n* "))
-    //    })
-    //    (Suppliers.ddl ++ Coffees.ddl).create
-
-    //        val s1 = Supplier(101, "Acme, Inc.", "99 Market Street", "Groundsville", "CA", "95199")
-    //        val s2 = Supplier(49, "Superior Coffee", "1 Party Place", "Mendocino", "CA", "95460")
-    //        val s3 = Supplier(150, "The High Ground", "100 Coffee Lane", "Meadows", "CA", "93966")
-    //    Suppliers.insert(s1)
-    //    Suppliers.insert(s2)
-    //    Suppliers.insert(s3)
-
-    println("Suppliers:")
-    Query(Suppliers) foreach { sup =>
-      println(sup)
-    }
-    val q = for (c <- Coffees) yield (c.name)
-    println(q.list)
+        val tables = MTable.getTables(Some(""), Some(""), None, None).list
+        tables foreach (t => {
+          println(t)
+          println(t.name.name)
+          println(t.getColumns.list.map(c => c.toString()).mkString("\n"))
+          println(t.getPrimaryKeys.list.mkString("\n"))
+          println("=====")
+          val fks = t.getImportedKeys.list
+          val grouped = fks.groupBy(x => (x.pkTable.name, x.fkTable.name)).mapValues(_.map(x => (x.pkColumn, x.fkColumn)))
+          println(grouped.mkString("\n"))
+          println("=====")
+          println(t.getImportedKeys.list.mkString("<Imp>\n\t", "\n\t", "\n</Imp>"))
+          println(t.getExportedKeys.list.mkString("\n"))
+          println(t.getIndexInfo(true, false).list)
+        })
   }
 }
 
-object Main4 extends App {
+object Main4  {
 
   val conf = com.typesafe.config.ConfigFactory.load("type-providers-h2")
   object ConfigHelper {
@@ -170,12 +159,67 @@ object Main4 extends App {
       try {
         conf.getString(key)
       } catch {
-        case _ => ""
+        case _: Throwable => ""
       }
 
     }
   }
   println(conf.getString("username"))
+}
+
+object Main5 {
+  import scala.slick.driver.H2Driver.simple._
+  import scala.slick.driver.H2Driver.simple.{ Table => Tab }
+  import scala.reflect.runtime.universe._
+  case class Supplier(id: Int, name: String, flag: Int)
+
+  val expr = reify {
+
+    // Definition of the SUPPLIERS table
+    object Suppliers extends Table[Supplier]("SUPPLIERS") {
+      def id = column[Int]("SUP_ID")
+      def name = column[String]("SUP_NAME")
+      def flag = column[Int]("SUP_FLAG")
+      def * = id ~ name ~ flag <> (Supplier, Supplier.unapply _)
+//      def * = null
+      def pk = primaryKey("pk_a", (id, name))
+    }
+
+  }
+  val s = showRaw(expr)
+  println(s)
+}
+
+object Main6 {
+  import scala.slick.driver.H2Driver.simple._
+  import scala.slick.driver.H2Driver.simple.{ Table => Tab }
+  import scala.reflect.runtime.universe._
+  case class Supplier(id: Int, name: String, flag: Int)
+
+  val expr = reify {
+    
+    object A extends Table[(Int, Int, String)]("a") {
+      def k1 = column[Int]("k1")
+      def k2 = column[Int]("k2")
+      def s = column[String]("s")
+      def * = k1 ~ k2 ~ s
+      def bFKTargetColumns(b: B.type) = (b.f1, b.f2)
+      def bFK = foreignKey("b_fk", (k1, k2), B)(bFKTargetColumns _, ForeignKeyAction.NoAction, onDelete = ForeignKeyAction.Cascade)
+    }
+
+    object B extends Table[(Int, Int, String)]("b") {
+      def f1 = column[Int]("f1")
+      def f2 = column[Int]("f2")
+      def s = column[String]("s")
+      def * = f1 ~ f2 ~ s
+      def bIdx1 = index("b_idx1", (f1, f2), unique = true)
+    }
+
+  }
+  val s = showRaw(expr)
+  println(s)
+  println("===")
+  println(expr)
 }
 
 object OldTests1 {
