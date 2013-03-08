@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 package scala.slick.lifted
 
 import scala.language.existentials

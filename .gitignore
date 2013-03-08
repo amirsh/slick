@@ -6,13 +6,10 @@ target/
 *.iml
 *.pyc
 /\.target/
-/\.cache
-/\.project
-/\.classpath
-/\.settings/
-.DS_Store
-.classpath
+.cache
 .project
-.settings
+.classpath
+.settings/
+.DS_Store
 lib/
 .swp
