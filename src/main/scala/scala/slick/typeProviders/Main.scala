@@ -114,7 +114,8 @@ object Main3 extends App{
       def k2 = column[Int]("k2")
       def s = column[String]("s")
       def * = k1 ~ k2 ~ s
-      def bFK = foreignKey("b_fk", (k1, k2), B)(b => (b.f1, b.f2), onDelete = ForeignKeyAction.Cascade)
+//      def bFK = foreignKey("b_fk", (k1, k2), B)(b => (b.f1, b.f2), onDelete = ForeignKeyAction.Cascade)
+      def bFK = foreignKey("b_fk", k1, B)(b => b.f1, onDelete = ForeignKeyAction.Cascade)
     }
 
     object B extends Table[(Int, Int, String)]("b") {
@@ -122,7 +123,7 @@ object Main3 extends App{
       def f2 = column[Int]("f2")
       def s = column[String]("s")
       def * = f1 ~ f2 ~ s
-      def bIdx1 = index("b_idx1", (f1, f2), unique = true)
+//      def bIdx1 = index("b_idx1", (f1, f2), unique = true)
     }
 
 //  val d2 = Database.forURL("jdbc:h2:mem:test1;INIT=runscript from 'create.sql'\\;runscript from 'populate.sql'", driver = "org.h2.Driver")
