@@ -86,7 +86,7 @@ object SlickBuild extends Build {
     // Work around scaladoc problem
     unmanagedClasspath in Compile += Attributed.blank(new java.io.File("doesnotexist"))
   ) ++ scalaSettings
-
+  
   /* Project Definitions */
   lazy val aRootProject = Project(id = "root", base = file("."),
     settings = Project.defaultSettings ++ sharedSettings ++ extTarget("root", Some("target/root")) ++ Seq(
@@ -101,6 +101,11 @@ object SlickBuild extends Build {
       description := "Scala Language-Integrated Connection Kit",
       scalacOptions in (Compile, doc) <++= (version).map(v => Seq("-doc-title", "Slick", "-doc-version", v)),
       test := (),
+      fullRunInputTask(
+        InputKey[Unit]("code-generate"),
+        Compile,
+        "scala.slick.typeproviders.CodeGeneratorMain"
+      ),
       testOnly <<= inputTask { argTask => (argTask) map { args => }},
       ivyConfigurations += config("macro").hide.extend(Compile),
       libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _ % "macro"),
