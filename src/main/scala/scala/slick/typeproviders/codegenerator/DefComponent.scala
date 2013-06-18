@@ -24,4 +24,8 @@ trait DefComponent { self: CodeGenerator =>
     }
   }
 
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

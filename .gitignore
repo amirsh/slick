@@ -2,12 +2,21 @@
 target/
 /test-dbs/*-*
 /test-dbs/databases.properties
+!/test-dbs/type-provider/
 *.log
 *.iml
 *.pyc
 /\.target/
 /\.cache
+<<<<<<< HEAD
 /\.project
 /\.classpath
 /\.settings/
 .DS_Store
+=======
+\.project
+\.classpath
+\.settings/
+.DS_Store
+*.swp
+>>>>>>> origin/topic/type-providers

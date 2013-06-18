@@ -60,12 +60,19 @@ object QualifiedName {
     QualifiedName(parts.toList)
   }
 
+<<<<<<< HEAD
   def tableName(tableName: String): QualifiedName = {
     QualifiedName(List(NamePart(tableName, TableName)))
   }
 
+=======
+>>>>>>> origin/topic/type-providers
   def columnName(tableName: QualifiedName, columnName: String): QualifiedName = {
     val parts = tableName.parts :+ NamePart(columnName, ColumnName)
     QualifiedName(parts)
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

@@ -7,4 +7,7 @@ package object naming {
    */
   type Rule = (String => String)
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/topic/type-providers

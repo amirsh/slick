@@ -213,4 +213,8 @@ trait TreeGeneratorCore { self: MacroHelpers =>
     List(importSimpleWild) ++ importTypeMapper
   }
 
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

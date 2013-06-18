@@ -11,4 +11,8 @@ trait TypeComponent { self: CodeGenerator =>
     val TypeDef(_, TypeName(typeName), List(), typeType) = typeDef
     s"${genIndent}type $typeName = ${generateCodeForTypeTree(typeType)}"
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

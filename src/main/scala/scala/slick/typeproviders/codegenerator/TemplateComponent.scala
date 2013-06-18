@@ -42,4 +42,8 @@ ${methodsCode.mkString("\n")}
 ${genIndent}}"""
   }
 
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

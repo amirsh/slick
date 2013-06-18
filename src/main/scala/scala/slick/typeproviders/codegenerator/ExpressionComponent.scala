@@ -48,4 +48,8 @@ trait ExpressionComponent { self: CodeGenerator =>
     else
       generateCodeForName(name.toString)
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

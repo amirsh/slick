@@ -68,4 +68,8 @@ object MappingConfiguration {
     new MappingConfiguration(namingConf.withFallback(defaultConfiguration))
   }
 
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

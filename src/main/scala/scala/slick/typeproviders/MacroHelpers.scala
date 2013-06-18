@@ -5,6 +5,7 @@ import scala.reflect.api.Universe
 
 abstract class MacroHelpers(val contextUtils: ContextUtils, val configFileName: String) extends ConfigHandler with TreeGeneratorUtils with TreeGeneratorCore {
   val universe: Universe
+<<<<<<< HEAD
 
   // workaround for compatibility of 2.10 and macro paradise
   object TermName {
@@ -16,3 +17,6 @@ abstract class MacroHelpers(val contextUtils: ContextUtils, val configFileName: 
     def unapply(t: universe.TypeName): Option[String] = Some(t.toString)
   }
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

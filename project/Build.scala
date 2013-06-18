@@ -16,6 +16,15 @@ object SlickBuild extends Build {
     libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _ % "optional")
   )
 
+  val paradiseSettings = Defaults.defaultSettings ++ Seq(
+    scalaVersion := "2.11.0-SNAPSHOT",
+    scalaOrganization := "org.scala-lang.macro-paradise",
+//    scalacOptions ++= List("-Ymacro-debug-lite"),
+    resolvers += Resolver.sonatypeRepo("snapshots"),
+    libraryDependencies <+= (scalaVersion)("org.scala-lang.macro-paradise" % "scala-reflect" % _),
+    libraryDependencies <+= (scalaVersion)("org.scala-lang.macro-paradise" % "scala-compiler" % _ % "optional")
+  )
+
   def localScalaSettings(path: String): Seq[Setting[_]] = Seq(
     scalaVersion := "2.10.0-unknown",
     scalaBinaryVersion := "2.10.0-unknown",
@@ -29,7 +38,8 @@ object SlickBuild extends Build {
 
   val scalaSettings = {
     sys.props("scala.home.local") match {
-      case null => publishedScalaSettings
+      //case null => publishedScalaSettings
+      case null => paradiseSettings
       case path =>
         scala.Console.err.println("Using local scala at " + path)
         localScalaSettings(path)
@@ -115,7 +125,7 @@ object SlickBuild extends Build {
       mappings in (Compile, packageBin) <++= mappings in (config("macro"), packageBin)
     ))
   lazy val slickTestkitProject = Project(id = "testkit", base = file("slick-testkit"),
-    settings = Project.defaultSettings ++ sharedSettings ++ extTarget("testkit", None) ++ Seq(
+    settings = Project.defaultSettings ++ inConfig(config("test-config"))(Defaults.configSettings) ++ sharedSettings ++ extTarget("testkit", None) ++ Seq(
       name := "Slick-TestKit",
       description := "Test Kit for Slick (Scala Language-Integrated Connection Kit)",
       scalacOptions in (Compile, doc) <++= (version).map(v => Seq("-doc-title", "Slick TestKit", "-doc-version", v)),
@@ -136,6 +146,11 @@ object SlickBuild extends Build {
         "mysql" % "mysql-connector-java" % "5.1.23" % "test",
         "net.sourceforge.jtds" % "jtds" % "1.2.4" % "test"
       ),
+      ivyConfigurations += config("test-config").hide.extend(Compile),
+      unmanagedClasspath in config("test-config") <++= fullClasspath in (slickProject, Compile),
+      unmanagedClasspath in Test <++= fullClasspath in config("test-config"),
+      mappings in (Test, packageSrc) <++= mappings in (config("test-config"), packageSrc),
+      mappings in (Test, packageBin) <++= mappings in (config("test-config"), packageBin),
       // Run the Queryable tests (which need macros) on a forked JVM
       // to avoid classloader problems with reification
       testGrouping <<= definedTests in Test map partitionTests,

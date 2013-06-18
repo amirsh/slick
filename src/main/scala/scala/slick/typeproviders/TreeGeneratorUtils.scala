@@ -152,8 +152,12 @@ trait TreeGeneratorUtils { self: MacroHelpers =>
     /**
      * Creates constructor tree representation
      */
+<<<<<<< HEAD
     val superCall = Apply(Select(Super(This(tpnme.EMPTY), tpnme.EMPTY), nme.CONSTRUCTOR), List())
     def ctorCreate(ctorParams: List[ValDef]): DefDef = DefDef(NoMods, nme.CONSTRUCTOR, List(), List(ctorParams), TypeTree(), Block(List(superCall), Literal(Constant(()))))
+=======
+    def ctorCreate(ctorParams: List[ValDef]): DefDef = DefDef(NoMods, nme.CONSTRUCTOR, List(), List(ctorParams), TypeTree(), Block(List(pendingSuperCall), Literal(Constant(()))))
+>>>>>>> origin/topic/type-providers
     /**
      * Creates case class
      */
@@ -179,4 +183,8 @@ trait TreeGeneratorUtils { self: MacroHelpers =>
     implicitMembersNameOfType(runtimeUniverse.typeOf[obj.type])
   }
 
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

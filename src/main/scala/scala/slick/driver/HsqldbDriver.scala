@@ -27,6 +27,8 @@ import scala.slick.jdbc.UnitInvoker
  * @author szeiger
  */
 trait HsqldbDriver extends JdbcDriver { driver =>
+  
+  override def getTables: UnitInvoker[MTable] = MTable.getTables(None, None, Some("%"), Some(Seq("TABLE")))
 
   override def getTables: UnitInvoker[MTable] = MTable.getTables(None, None, Some("%"), Some(Seq("TABLE")))
   

@@ -18,7 +18,11 @@ class NamingTest {
   type Input = Map[String, List[String]]
   type Value = (String, String)
   type Result = Map[(String, String), List[(String, String)]]
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> origin/topic/type-providers
   val inputTest = Map(
     "COFFEES" -> List("COFFEE_ID", "NAME"),
     "SUPPLIER" -> List("SUPP_ID", "TOTAL"))

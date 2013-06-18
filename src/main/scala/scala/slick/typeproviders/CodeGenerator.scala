@@ -10,6 +10,7 @@ class CodeGenerator(val configFileName: String) extends TemplateComponent
   import scala.reflect.runtime.{ universe => runtimeUniverse }
   import runtimeUniverse._
 
+<<<<<<< HEAD
   object TermName {
     def apply(s: String): runtimeUniverse.TermName = runtimeUniverse.newTermName(s)
     def unapply(t: runtimeUniverse.TermName): Option[String] = Some(t.toString)
@@ -19,6 +20,8 @@ class CodeGenerator(val configFileName: String) extends TemplateComponent
     def unapply(t: runtimeUniverse.TypeName): Option[String] = Some(t.toString)
   }
 
+=======
+>>>>>>> origin/topic/type-providers
   val macroHelper = new {
     val universe: runtimeUniverse.type = runtimeUniverse
   } with MacroHelpers(DefaultContextUtils, configFileName)
@@ -95,4 +98,8 @@ object DefaultContextUtils {
     }
     name + "$" + index
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers

@@ -27,4 +27,8 @@ trait TypeExtractor[Elem, TupleElem] extends (TupleElem => Elem) {
 
 object TypeMapper extends JdbcDriver.ImplicitJdbcTypes {
   val MappedColumnType = MappedJdbcType
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/topic/type-providers
