@@ -8,8 +8,9 @@ import scala.slick.SlickException
 import scala.slick.profile.BasicDriver
 import scala.slick.driver.{ H2Driver, JdbcDriver, JdbcProfile }
 import scala.slick.shadow.deep._
+import ch.epfl.yinyang.api.VirtualAny
 
-trait YYSlickCake extends YYType with YYSlickCakeTuples {
+trait YYSlickCake extends YYType with YYSlickCakeTuples with VirtualAny {
   val Ordering = YYOrdering
   val String = YYOrdering.String
   val Int = YYOrdering.Int

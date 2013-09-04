@@ -1,7 +1,7 @@
 package scala.slick.shadow.lifting
 
 import scala.slick.shadow.deep._
-import ch.epfl.yinyang.api.{ BaseYinYang, Interpreted, FullyStaged }
+import ch.epfl.yinyang.api.{ BaseYinYangTypeTag, Interpreted, FullyStaged }
 import scala.slick.shadow.{ Shallow => OShallow }
 import scala.reflect.runtime.{ universe => ru }
 import scala.slick.ast.QueryParameter
@@ -10,7 +10,7 @@ import scala.slick.shadow.ShadowInterpreter
 import scala.slick.shadow.YYSlickCake
 import scala.slick.shadow.YYConstantType
 
-trait ShadowSlickLifting extends scala.slick.driver.JdbcDriver.ImplicitJdbcTypes with BaseYinYang { self: YYSlickCake =>
+trait ShadowSlickLifting extends scala.slick.driver.JdbcDriver.ImplicitJdbcTypes with BaseYinYangTypeTag { self: YYSlickCake =>
   import scala.slick.ast.TypedType
   implicit object LiftUnit extends LiftEvidence[Unit, Unit] {
     def lift(v: Unit): Unit = v
