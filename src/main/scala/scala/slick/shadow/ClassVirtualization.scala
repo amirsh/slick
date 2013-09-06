@@ -59,15 +59,21 @@ trait YYTransformers {
     def getParamss(methodSymbol: MethodSymbol): List[List[ValDef]] = methodSymbol.paramss.map(_.map(p => {
       ValDef(Modifiers(PARAM | SYNTHETIC), TermName(p.name.toString), transformType(p.typeSignature), EmptyTree)
     }))
+    def isParameterType(tpe: Type): Boolean = {
+      def <<<[T: typeTransformer.c.TypeTag]: Boolean = tpe <:< typeTransformer.c.typeOf[T].asInstanceOf[Type]
+      if (<<<[Int] || <<<[Long] || <<<[String] || <<<[Double] || <<<[Boolean])
+        true
+      else
+        false
+    }
     def getMethodFromSymbol(methodSymbol: MethodSymbol): Tree = {
-      // println("paramss: " + methodSymbol.paramss.map(_.map(p => {
-      //   println(p.typeSignature)
-      //   transformType(p.typeSignature)
-      //   })))
       val paramss = getParamss(methodSymbol)
       // original(defaultValue[Int], defaultValue[String])
       val originalMethodTree = Apply(Ident(methodSymbol), methodSymbol.paramss.head.map({ p =>
-        TypeApply(Ident(TermName("defaultValue")), List(TypeTree(p.typeSignature)))
+        if (p.typeSignature <:< typeTransformer.c.typeOf[Shallow.Query[_]].asInstanceOf[Type])
+          Select(Ident(TermName(p.name.toString)), TermName("getShallow"))
+        else
+          TypeApply(Ident(TermName("defaultValue")), List(TypeTree(p.typeSignature)))
       })) 
       // originalMethodTree.asInstanceOf[TransferQuery].underlying.transform
       val transMethod = Select(
@@ -89,7 +95,7 @@ trait YYTransformers {
         TermName("transform")
       )
       // transMethod(lift(2), lift("three"))
-      val rhs = Apply(transMethod, methodSymbol.paramss.head.map({ p => 
+      val rhs = Apply(transMethod, methodSymbol.paramss.head.filter(p => isParameterType(p.typeSignature)).map({ p => 
         Ident(TermName(p.name.toString))
       }))
       DefDef(NoMods, TermName(virtualMethodName(methodSymbol.name.toString)), Nil, paramss, transformType(methodSymbol.returnType), rhs)
@@ -259,7 +265,7 @@ trait YYTransformers {
       }
       // for collecting methods
       case Apply(sel @ Ident(termName), args) if sel.symbol.isMethod => {
-        println("method: " + termName)
+        // println("method: " + termName)
         methods += sel.symbol.asMethod
         args foreach traverse
       }

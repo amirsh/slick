@@ -228,6 +228,8 @@ trait YYQuery[U] extends QueryOps[U] with YYRep[Seq[U]] {
       case nwq: NonWrappingQuery[_, _] => new NonWrappingQuery[Rep[U], U](transformedNode, nwq.unpackable)
     })
   }
+
+  def getShallow: scala.slick.shadow.Shallow.Query[U] = new scala.slick.shadow.lifting.TransferQuery[U](this, null, null)
 }
 
 trait YYJoinQuery[U1, U2] extends YYQuery[(U1, U2)] {

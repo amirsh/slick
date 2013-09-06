@@ -1080,7 +1080,40 @@ class ShadowTest {
       assertEquals("Template by invoking function inside shadow block composed with the same function", inMem_template_query(threshold, string) zip inMem_template_query(threshold, "LOW"), r3.toList)
     }
 
-    // val t_q_y = template_query(2, "hello").asInstanceOf[scala.slick.shadow.lifting.TransferQuery[_]].underlying
+    def function_query(threshold: Long, string: String, query: Query[Coffee1]) = stage {
+      query map (x => (x.id, if (x.id < threshold) string else x.name))
+    }
+
+    for (threshold <- 1 to 10) {
+      val string = "LOW"
+      val r3 = stage {
+        function_query(threshold, string, Queryable[Coffee1])
+      }.list()
+      assertEquals("Template by invoking function with query parameter inside shadow block", inMem_template_query(threshold, string), r3.toList)
+    }
+
+    // TODO support for join query
+    // def function_zip_query(query1: Query[Coffee1], query2: Query[Coffee1]) = stage {
+    //   query1 zip query2
+    // }
+
+    // val zip_result = stageDebug {
+    //   function_zip_query(Queryable[Coffee1], Queryable[Coffee1])
+    // }.list()
+
+    // assertEquals("Template by invoking function with 2 query parameters inside shadow block", inMem zip inMem, zip_result.toList)
+
+    def function_zip_map_query(query1: Query[Coffee1], query2: Query[Coffee1]) = stage {
+      // query1 zip query2 map (x => (x._1._1, x._1._2, x._2._1, x._2._2))
+      query1 zip query2 map (x => ((x._1.id, x._1.name), (x._2.id, x._2.name)))
+    }
+
+    val zip_result = stageDebug {
+      function_zip_map_query(Queryable[Coffee1], Queryable[Coffee1])
+    }.list()
+
+    // assertEquals("Template by invoking function with 2 query parameters inside shadow block", inMem zip inMem  map (x => (x._1._1, x._1._2, x._2._1, x._2._2)), zip_result.toList)
+    assertEquals("Template by invoking function with 2 query parameters inside shadow block", inMem zip inMem  map (x => (x._1, x._2)), zip_result.toList)
 
     // val t_q_1 = t_q_y.underlying
     // import scala.slick.ast.StaticType._
