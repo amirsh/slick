@@ -1050,6 +1050,51 @@ class ShadowTest {
     //    }
     //    assertEquals("Query map (_1, _2) of Virtualized++ Table + if", inMem.map(x => (x._1, if (x._1 < threshold) "Low" else x._2)), r3.toList)
 
+    def template_query(threshold: Long, string: String) = stage {
+      Queryable[Coffee1] map (x => (x.id, if (x.id < threshold) string else x.name))
+    }
+    def inMem_template_query(threshold: Long, string: String) = 
+      inMem.map(x => (x._1, if (x._1 < threshold) string else x._2))
+
+    for (threshold <- 1 to 10) {
+      val string = "LOW"
+      val r3 = stage {
+        template_query(threshold, string)
+      }.list()
+      assertEquals("Template by invoking function inside shadow block", inMem_template_query(threshold, string), r3.toList)
+    }
+
+    for (threshold <- 1 to 10) {
+      val string = "low"
+      val r3 = stage {
+        template_query(threshold, string).map(x => (x._2 + "!", x._1 + 3))
+      }.list()
+      assertEquals("Template by invoking function inside shadow block composed with other expressions", inMem_template_query(threshold, string).map(x => (x._2 + "!", x._1 + 3)), r3.toList)
+    }
+
+    for (threshold <- 1 to 10) {
+      val string = "low"
+      val r3 = stage {
+        template_query(threshold, string) zip template_query(threshold, "LOW")
+      }.list()
+      assertEquals("Template by invoking function inside shadow block composed with the same function", inMem_template_query(threshold, string) zip inMem_template_query(threshold, "LOW"), r3.toList)
+    }
+
+    // val t_q_y = template_query(2, "hello").asInstanceOf[scala.slick.shadow.lifting.TransferQuery[_]].underlying
+
+    // val t_q_1 = t_q_y.underlying
+    // import scala.slick.ast.StaticType._
+    // val t_q_2 = t_q_y.transform(IndexedSeq(scala.slick.shadow.deep.YYConstColumn(1), scala.slick.shadow.deep.YYConstColumn("one"))).underlying
+
+    // scala.slick.ast.Dump(t_q_1)
+    // scala.slick.ast.Dump(t_q_2)
+
+    // println(template_query(2).asInstanceOf[scala.slick.shadow.lifting.TransferQuery[_]].underlying.underlying)
+
+    // stageDebug {
+    //   template_query(1, "") map (_._1 == (1, 2)._1)
+    // }
+
     DatabaseHandler.closeSession
   }
 

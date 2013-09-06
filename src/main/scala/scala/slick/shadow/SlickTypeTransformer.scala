@@ -6,11 +6,11 @@ import scala.reflect.runtime.universe.definitions.FunctionClass
 import ch.epfl.yinyang.typetransformers.{ PolyTransformer }
 import ch.epfl.yinyang.{ TransformationUtils }
 
-class SlickTypeTransformer[C <: Context](ctx: C, override val debugLevel: Int = 0)(virtualTypes: List[Universe#Type]) extends PolyTransformer[C](ctx) with TransformationUtils {
+class SlickTypeTransformer[C <: Context](ctx: C, override val debugLevel: Int = 0)/*(virtualTypes: List[Universe#Type])*/ extends PolyTransformer[C](ctx) with TransformationUtils {
   type Ctx = C
   import c.universe._
 
-  lazy val virtualTypeNames = virtualTypes.map(_.typeSymbol.name.toString())
+  // lazy val virtualTypeNames = virtualTypes.map(_.typeSymbol.name.toString())
 
   override def constructPolyTree(typeCtx: TypeContext, inType: Type): Tree = {
     log(s"handling $inType in $typeCtx")

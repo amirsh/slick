@@ -22,13 +22,25 @@ trait YYType {
   }
 }
 
-trait YYConstantSourceType[T]
+trait YYConstantSourceType[T] {
+  val defaultValue: T
+}
 trait YYConstantType[T, S] extends YYConstantSourceType[T]
 
 object YYConstantType extends YYType {
-  implicit object IntType extends YYConstantType[scala.Int, Int]
-  implicit object LongType extends YYConstantType[scala.Long, Long]
-  implicit object DoubleType extends YYConstantType[scala.Double, Double]
-  implicit object BooleanType extends YYConstantType[scala.Boolean, Boolean]
-  implicit object StringType extends YYConstantType[Predef.String, String]
+  implicit object IntType extends YYConstantType[scala.Int, Int] {
+    val defaultValue = 0
+  }
+  implicit object LongType extends YYConstantType[scala.Long, Long] {
+    val defaultValue = 0L
+  }
+  implicit object DoubleType extends YYConstantType[scala.Double, Double] {
+    val defaultValue = 0D
+  }
+  implicit object BooleanType extends YYConstantType[scala.Boolean, Boolean] {
+    val defaultValue = false
+  }
+  implicit object StringType extends YYConstantType[Predef.String, String] {
+    val defaultValue = ""
+  }
 }

@@ -201,6 +201,33 @@ trait YYQuery[U] extends QueryOps[U] with YYRep[Seq[U]] {
   object BooleanRepCanBeQueryCondition extends CanBeQueryCondition[Rep[Boolean]] {
     def apply(value: Rep[Boolean]) = value.asInstanceOf[Column[Boolean]]
   }
+  def transform(varargs: YYColumn[_]*): YYQuery[U] = {
+    val nodes = varargs.toIndexedSeq
+    import scala.slick.compiler.Transformer
+    import scala.slick.ast.QueryParameter
+    val transformer = new Transformer { 
+      override val keepType = true
+      override def replace: PartialFunction[Node, Node] = new PartialFunction[Node, Node] {
+        def apply(n: Node) = n match {
+          case param: QueryParameter with IndexedParameter => nodes(param.index).underlying.nodeDelegate
+          case _ => throw new SlickException("Incorrect parameter")
+        }
+        def isDefinedAt(n: Node) = n match {
+          case param: QueryParameter => true
+          case _ => false
+        }
+      }
+    }
+    val queryNode = query match {
+      case wq: WrappingQuery[_, _] => wq.nodeDelegate
+      case nwq: NonWrappingQuery[_, _] => nwq.nodeDelegate
+    }
+    val transformedNode = transformer.once(queryNode)
+    YYQuery.fromQuery(query match {
+      case wq: WrappingQuery[_, _] => new WrappingQuery[Rep[U], U](transformedNode, wq.base)
+      case nwq: NonWrappingQuery[_, _] => new NonWrappingQuery[Rep[U], U](transformedNode, nwq.unpackable)
+    })
+  }
 }
 
 trait YYJoinQuery[U1, U2] extends YYQuery[(U1, U2)] {

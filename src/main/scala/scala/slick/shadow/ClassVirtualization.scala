@@ -17,18 +17,20 @@ trait YYTransformers {
   import universe._
   import Flag.CASE
   import Flag.PARAM
+  val SYNTHETIC = scala.reflect.internal.Flags.SYNTHETIC.asInstanceOf[Long].asInstanceOf[FlagSet]
   val macroHelper = new {
     val universe: YYTransformers.this.universe.type = YYTransformers.this.universe
   } with MacroHelpers(DefaultContextUtils, "")
 
   var virtualTraverserIsApplied: Boolean = false
   var virtualSymbols: List[Symbol] = Nil
+  var virtualMethodSymbols: List[MethodSymbol] = Nil
 
   object ClassVirtualization {
     import ch.epfl.yinyang.transformers.PostProcessing._
-    def getStatementsFromTables: List[(StatementContext, Tree)] = {
+    def getStatementsFromTables[C <: Context](typeTransformer: SlickTypeTransformer[C]): List[(StatementContext, Tree)] = {
       val cv = new ClassVirtualization()
-      if (USE_VIRTUAL_CG) {
+      val cvStatements = if (USE_VIRTUAL_CG) {
         val importStatement = (ClassContext, macroHelper.createImport(macroHelper.createObjectFromString("_root_.scala.slick.shadow.VirtualizationModule"), Nil))
         val tables = virtualSymbols map cv.getTableFromSymbol
         val caseAliasTerm = virtualSymbols zip tables map (x => cv.createCaseClassRepTerm(x._2)(x._1)) map (x => (ClassContext, x))
@@ -36,6 +38,10 @@ trait YYTransformers {
         List(importStatement) ++ caseAliasTerm ++ caseAliasType
       } else
         cv.getStatementsFromTables(virtualSymbols)
+      val mv = new MethodVirtualization(typeTransformer)
+      val methodStatements = virtualMethodSymbols map mv.getMethodFromSymbol map (x => (ClassContext, x))
+      val innerMethodStatements = virtualMethodSymbols map mv.getInnerMethod map (x => (MainContext, x))
+      cvStatements ++ methodStatements ++ innerMethodStatements
     }
   }
   // workaround for compatibility of 2.10 and macro paradise
@@ -48,8 +54,63 @@ trait YYTransformers {
     def unapply(t: TypeName): Option[String] = Some(t.toString)
   }
 
+  class MethodVirtualization[C <: Context](val typeTransformer: SlickTypeTransformer[C]) {
+    def transformType(tpe: Type): Tree = typeTransformer.transform(typeTransformer.OtherCtx, tpe.asInstanceOf[typeTransformer.c.universe.Type]).asInstanceOf[Tree]
+    def getParamss(methodSymbol: MethodSymbol): List[List[ValDef]] = methodSymbol.paramss.map(_.map(p => {
+      ValDef(Modifiers(PARAM | SYNTHETIC), TermName(p.name.toString), transformType(p.typeSignature), EmptyTree)
+    }))
+    def getMethodFromSymbol(methodSymbol: MethodSymbol): Tree = {
+      // println("paramss: " + methodSymbol.paramss.map(_.map(p => {
+      //   println(p.typeSignature)
+      //   transformType(p.typeSignature)
+      //   })))
+      val paramss = getParamss(methodSymbol)
+      // original(defaultValue[Int], defaultValue[String])
+      val originalMethodTree = Apply(Ident(methodSymbol), methodSymbol.paramss.head.map({ p =>
+        TypeApply(Ident(TermName("defaultValue")), List(TypeTree(p.typeSignature)))
+      })) 
+      // originalMethodTree.asInstanceOf[TransferQuery].underlying.transform
+      val transMethod = Select(
+        Select(
+          TypeApply(
+            Select(
+              originalMethodTree, 
+              TermName("asInstanceOf")
+            ), 
+            List(
+              AppliedTypeTree(
+                macroHelper.createClassFromString("_root_.scala.slick.shadow.lifting.TransferQuery"), 
+                List(TypeTree(methodSymbol.returnType.asInstanceOf[TypeRef].args.head))
+              )
+            )
+          ),                     
+          TermName("underlying")
+        ), 
+        TermName("transform")
+      )
+      // transMethod(lift(2), lift("three"))
+      val rhs = Apply(transMethod, methodSymbol.paramss.head.map({ p => 
+        Ident(TermName(p.name.toString))
+      }))
+      DefDef(NoMods, TermName(virtualMethodName(methodSymbol.name.toString)), Nil, paramss, transformType(methodSymbol.returnType), rhs)
+    }
+
+    def virtualMethodName(methodName: String): String = "virtualised__" + methodName
+
+    def getInnerMethod(methodSymbol: MethodSymbol): Tree = {
+      val paramss = getParamss(methodSymbol)
+      val rhs = 
+        Apply(
+          Ident(TermName(virtualMethodName(methodSymbol.name.toString))), 
+          methodSymbol.paramss.head.map({ p => 
+            Ident(TermName(p.name.toString))
+          })
+        )
+      DefDef(NoMods, TermName(methodSymbol.name.toString), Nil, paramss, transformType(methodSymbol.returnType), rhs)
+    }
+  }
+
   class ClassVirtualization {
-    val SYNTHETIC = scala.reflect.internal.Flags.SYNTHETIC.asInstanceOf[Long].asInstanceOf[FlagSet]
     def isCaseClassDef(tree: Tree): Boolean = tree match {
       case ClassDef(mods, _, _, _) if mods.hasFlag(CASE) => true
       case _ => false
@@ -171,11 +232,13 @@ trait YYTransformers {
       vcc.traverse(tree)
       virtualTraverserIsApplied = true
       virtualSymbols = vcc.collected.toList
+      virtualMethodSymbols = vcc.methods.toList
       virtualSymbols
     }
   }
   private final class VirtualClassCollector extends Traverser {
     private[YYTransformers] val collected = new HashSet[Symbol]()
+    private[YYTransformers] val methods = new HashSet[MethodSymbol]()
     private val virtualTypes: List[Type] = {
       import universe.TypeTag._
       List(Boolean.tpe, Int.tpe, Long.tpe, Float.tpe, Double.tpe, typeOf[String].normalize)
@@ -185,6 +248,7 @@ trait YYTransformers {
       virtualTypes.find(x => (tpe.normalize equals x)).isEmpty
     }
     override def traverse(tree: Tree) = tree match {
+      // for collecting virtual types
       case typTree: TypTree if typTree.tpe != null => {
         def collectVirtuals(tpe: Type): Unit = tpe match {
           case t @ TypeRef(pre, sym, Nil) if isVirtual(t) => collected += t.typeSymbol
@@ -192,6 +256,12 @@ trait YYTransformers {
           case _ => ()
         }
         collectVirtuals(typTree.tpe)
+      }
+      // for collecting methods
+      case Apply(sel @ Ident(termName), args) if sel.symbol.isMethod => {
+        println("method: " + termName)
+        methods += sel.symbol.asMethod
+        args foreach traverse
       }
       case _ => super.traverse(tree)
     }

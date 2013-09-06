@@ -16,11 +16,17 @@ object Hole {
       }
       res
     }
-    val c = Column.forNode[T](new QueryParameter(extractor, tpe))(tpe)
     val i = index
+    val c = Column.forNode[T](new QueryParameter(extractor, tpe) with IndexedParameter {
+        val index = i
+      })(tpe)
     new YYColumn[T] with Hole {
       val column = c
       val index = i
     }
   }
+}
+
+trait IndexedParameter {
+  val index: Int
 }

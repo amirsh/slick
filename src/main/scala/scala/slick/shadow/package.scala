@@ -14,35 +14,42 @@ package object shadow {
   def stageDebug[T](block: => T): T = macro implementations.stageDebug[T]
 
   object implementations {
+    val dslName = "scala.slick.shadow.ShadowInterpreter"
     def stage[T](c: Context)(block: c.Expr[T]): c.Expr[T] = {
       //      println(c.universe.showRaw(block))
       val yyTranformers = new {
         val universe: c.universe.type = c.universe
         val mirror = c.mirror
       } with YYTransformers
+      val className = YYTransformer.getClassName(dslName)
+      val typeTransformer = new SlickTypeTransformer[c.type](c)
+      typeTransformer.className = className
       val virtualSymbols = yyTranformers.VirtualClassCollector(block.tree)
-      val virtualTypes = virtualSymbols.map(_.typeSignature)
-      val virtualStatements = yyTranformers.ClassVirtualization.getStatementsFromTables
+      val virtualStatements = yyTranformers.ClassVirtualization.getStatementsFromTables(typeTransformer)
 
-      YYTransformer[c.type, T](c)("scala.slick.shadow.ShadowInterpreter",
-        new SlickTypeTransformer[c.type](c)(virtualTypes),
+      val yyTransformer = YYTransformer[c.type, T](c)(dslName,
+        typeTransformer,
         postProcessing = Some(new PostProcessing[c.type](c)(virtualStatements)),
-        Map("shallow" -> false, "debug" -> 0, "featureAnalysing" -> false, "ascriptionTransforming" -> true, "liftTypes" -> List(c.typeOf[Shallow.Query[_]]))
-      )(block)
+        Map("shallow" -> false, "debug" -> 0, "featureAnalysing" -> false, "ascriptionTransforming" -> true, "liftTypes" -> List(c.typeOf[Shallow.Query[_]]), "assignedClassName" -> Some(className))
+      )
+
+      yyTransformer(block)
     }
     def stageDebug[T](c: Context)(block: c.Expr[T]): c.Expr[T] = {
       //      println(c.universe.showRaw(block))
       val yyTranformers = new {
         val universe: c.universe.type = c.universe
       } with YYTransformers
+      val className = YYTransformer.getClassName(dslName)
+      val typeTransformer = new SlickTypeTransformer[c.type](c, 3)
+      typeTransformer.className = className
       val virtualSymbols = yyTranformers.VirtualClassCollector(block.tree)
-      val virtualTypes = virtualSymbols.map(_.typeSignature)
-      val virtualStatements = yyTranformers.ClassVirtualization.getStatementsFromTables
+      val virtualStatements = yyTranformers.ClassVirtualization.getStatementsFromTables(typeTransformer)
 
-      YYTransformer[c.type, T](c)("scala.slick.shadow.ShadowInterpreter",
-        new SlickTypeTransformer[c.type](c, 1)(virtualTypes),
+      YYTransformer[c.type, T](c)(dslName,
+        typeTransformer,
         postProcessing = Some(new PostProcessing[c.type](c)(virtualStatements)),
-        Map("shallow" -> false, "debug" -> 1, "featureAnalysing" -> false, "ascriptionTransforming" -> true, "liftTypes" -> List(c.typeOf[Shallow.Query[_]]))
+        Map("shallow" -> false, "debug" -> 3, "featureAnalysing" -> false, "ascriptionTransforming" -> true, "liftTypes" -> List(c.typeOf[Shallow.Query[_]]), "assignedClassName" -> Some(className))
       )(block)
     }
 

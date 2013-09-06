@@ -688,7 +688,7 @@ final case class TypeMapping(val child: Node, val baseType: Type, val toBase: An
 }
 
 /** A parameter from a QueryTemplate which gets turned into a bind variable. */
-final case class QueryParameter(extractor: (Any => Any), val tpe: Type) extends NullaryNode with TypedNode {
+case class QueryParameter(extractor: (Any => Any), val tpe: Type) extends NullaryNode with TypedNode {
   type Self = QueryParameter
   def nodeRebuild = copy()
   override def toString = "QueryParameter"

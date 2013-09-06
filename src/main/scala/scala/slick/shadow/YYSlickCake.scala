@@ -59,4 +59,8 @@ trait YYSlickCake extends YYType with YYSlickCakeTuples with VirtualAny {
   object Table {
     def getTable[S](implicit mapping: Table[S]): Table[S] = mapping
   }
+
+  def defaultValue[T](implicit tpe: YYConstantType[T, _]): T = {
+    tpe.defaultValue
+  }
 }
