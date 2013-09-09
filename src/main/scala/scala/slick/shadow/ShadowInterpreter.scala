@@ -13,8 +13,7 @@ import scala.slick.shadow.deep.CaseRep
 import scala.slick.shadow.deep.ConstCaseRep
 import scala.slick.shadow.deep.Hole
 import scala.slick.shadow.deep._
-import scala.slick.shadow.lifting.ShadowSlickLifting
-import scala.slick.shadow.lifting.TransferQuery
+import scala.slick.shadow.lifting.{ShadowSlickLifting, TransferQuery, TransferJoinQuery }
 
 trait ShadowInterpreter extends ShadowSlickLifting with YYSlickCake with Interpreted with HoleTypeAnalyser {
   @volatile private var alreadyInterpreted: scala.Boolean = false
@@ -73,6 +72,7 @@ trait ShadowInterpreter extends ShadowSlickLifting with YYSlickCake with Interpr
     }
     @inline def handleResult(result: Any): Any = {
       result match {
+        case yyJoinQuery: YYJoinQuery[_, _] => new TransferJoinQuery(result.asInstanceOf[YYJoinQuery[_, _]], this, params.toIndexedSeq)
         case yyQuery: YYQuery[_] => new TransferQuery(result.asInstanceOf[YYQuery[_]], this, params.toIndexedSeq)
         case value: YYValue[_] =>
           getValue(value)

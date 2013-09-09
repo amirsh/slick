@@ -75,6 +75,7 @@ trait YYTransformers {
         else
           TypeApply(Ident(TermName("defaultValue")), List(TypeTree(p.typeSignature)))
       })) 
+      val resultType = transformType(methodSymbol.returnType)
       // originalMethodTree.asInstanceOf[TransferQuery].underlying.transform
       val transMethod = Select(
         Select(
@@ -98,7 +99,20 @@ trait YYTransformers {
       val rhs = Apply(transMethod, methodSymbol.paramss.head.filter(p => isParameterType(p.typeSignature)).map({ p => 
         Ident(TermName(p.name.toString))
       }))
-      DefDef(NoMods, TermName(virtualMethodName(methodSymbol.name.toString)), Nil, paramss, transformType(methodSymbol.returnType), rhs)
+      // rhs.asInstanceOf[ResultType]
+      // takes care of the problem with join query
+      val rhsTyped = 
+        TypeApply(
+          Select(
+            rhs, 
+            TermName("asInstanceOf")
+          ), 
+          List(
+            resultType
+          )
+        )
+
+      DefDef(NoMods, TermName(virtualMethodName(methodSymbol.name.toString)), Nil, paramss, resultType, rhsTyped)
     }
 
     def virtualMethodName(methodName: String): String = "virtualised__" + methodName

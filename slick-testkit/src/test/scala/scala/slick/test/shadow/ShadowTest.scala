@@ -1040,7 +1040,7 @@ class ShadowTest {
       val r3 = template2_r(lower, upper)
       assertEquals("Template with 2 reversed args by invoking function", inMem.map(x => (x._1, if (x._1 < upper && x._1 > lower) "Mid" else x._2)), r3.toList)
     }
-    //    val r = (a: Int) => stageDebug {
+    //    val r = (a: Int) => stage {
     //      a
     //    }
     //    val threshold = 1
@@ -1092,41 +1092,25 @@ class ShadowTest {
       assertEquals("Template by invoking function with query parameter inside shadow block", inMem_template_query(threshold, string), r3.toList)
     }
 
-    // TODO support for join query
-    // def function_zip_query(query1: Query[Coffee1], query2: Query[Coffee1]) = stage {
-    //   query1 zip query2
-    // }
+    def function_zip_query(query1: Query[Coffee1], query2: Query[Coffee1]): JoinQuery[Coffee1, Coffee1] = stage {
+      query1 zip query2
+    }
 
-    // val zip_result = stageDebug {
-    //   function_zip_query(Queryable[Coffee1], Queryable[Coffee1])
-    // }.list()
+    val zip_result = stage {
+      function_zip_query(Queryable[Coffee1], Queryable[Coffee1]) map (x => ((x._1.id, x._1.name), (x._2.id, x._2.name)))
+    }.list()
 
-    // assertEquals("Template by invoking function with 2 query parameters inside shadow block", inMem zip inMem, zip_result.toList)
+    assertEquals("Template by invoking function with 2 query parameters inside shadow block", inMem zip inMem, zip_result.toList)
 
     def function_zip_map_query(query1: Query[Coffee1], query2: Query[Coffee1]) = stage {
-      // query1 zip query2 map (x => (x._1._1, x._1._2, x._2._1, x._2._2))
       query1 zip query2 map (x => ((x._1.id, x._1.name), (x._2.id, x._2.name)))
     }
 
-    val zip_result = stageDebug {
+    val zip_result_2 = stage {
       function_zip_map_query(Queryable[Coffee1], Queryable[Coffee1])
     }.list()
 
-    // assertEquals("Template by invoking function with 2 query parameters inside shadow block", inMem zip inMem  map (x => (x._1._1, x._1._2, x._2._1, x._2._2)), zip_result.toList)
-    assertEquals("Template by invoking function with 2 query parameters inside shadow block", inMem zip inMem  map (x => (x._1, x._2)), zip_result.toList)
-
-    // val t_q_1 = t_q_y.underlying
-    // import scala.slick.ast.StaticType._
-    // val t_q_2 = t_q_y.transform(IndexedSeq(scala.slick.shadow.deep.YYConstColumn(1), scala.slick.shadow.deep.YYConstColumn("one"))).underlying
-
-    // scala.slick.ast.Dump(t_q_1)
-    // scala.slick.ast.Dump(t_q_2)
-
-    // println(template_query(2).asInstanceOf[scala.slick.shadow.lifting.TransferQuery[_]].underlying.underlying)
-
-    // stageDebug {
-    //   template_query(1, "") map (_._1 == (1, 2)._1)
-    // }
+    assertEquals("Template by invoking function with 2 query parameters inside shadow block", inMem zip inMem  map (x => (x._1, x._2)), zip_result_2.toList)
 
     DatabaseHandler.closeSession
   }

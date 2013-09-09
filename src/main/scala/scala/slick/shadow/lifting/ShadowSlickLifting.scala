@@ -26,6 +26,12 @@ trait ShadowSlickLifting extends scala.slick.driver.JdbcDriver.ImplicitJdbcTypes
     def lift(v: OShallow.Query[T]): Query[T] = v.asInstanceOf[TransferQuery[T]].underlying
     def hole(tpe: ru.TypeTag[OShallow.Query[T]], symbolId: scala.Int): Query[T] = ???
   }
+
+  implicit def liftJoinQuery[T1, T2](implicit ttag: ru.TypeTag[OShallow.JoinQuery[T1, T2]]): LiftEvidence[OShallow.JoinQuery[T1, T2], JoinQuery[T1, T2]] = new LiftEvidence[OShallow.JoinQuery[T1, T2], JoinQuery[T1, T2]] {
+    def lift(v: OShallow.JoinQuery[T1, T2]): JoinQuery[T1, T2] = v.asInstanceOf[TransferJoinQuery[T1, T2]].underlying.asInstanceOf[JoinQuery[T1, T2]]
+    def hole(tpe: ru.TypeTag[OShallow.JoinQuery[T1, T2]], symbolId: scala.Int): JoinQuery[T1, T2] = ???
+  }
 }
 
 class TransferQuery[T](val underlying: YYQuery[T], val cake: ShadowInterpreter, val params: IndexedSeq[Any]) extends OShallow.Query[T]
+class TransferJoinQuery[T1, T2](override val underlying: YYQuery[(T1, T2)], override val cake: ShadowInterpreter, override val params: IndexedSeq[Any]) extends TransferQuery[(T1, T2)](underlying, cake, params) with OShallow.JoinQuery[T1, T2]

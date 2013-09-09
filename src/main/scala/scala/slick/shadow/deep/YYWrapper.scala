@@ -223,10 +223,29 @@ trait YYQuery[U] extends QueryOps[U] with YYRep[Seq[U]] {
       case nwq: NonWrappingQuery[_, _] => nwq.nodeDelegate
     }
     val transformedNode = transformer.once(queryNode)
-    YYQuery.fromQuery(query match {
-      case wq: WrappingQuery[_, _] => new WrappingQuery[Rep[U], U](transformedNode, wq.base)
-      case nwq: NonWrappingQuery[_, _] => new NonWrappingQuery[Rep[U], U](transformedNode, nwq.unpackable)
-    })
+    query match {
+      // doesn't work, 'pattern type is incompatible with expected type'
+      // case bjq: BaseJoinQuery[_, _, _, _] => {
+      //   type U1 = Any
+      //   type U2 = Any
+      //   type Q = Query[(Rep[U1], Rep[U2]), (U1, U2)]
+      //   YYQuery.fromJoinQuery(new WrappingQuery[Rep[U], U](transformedNode, bjq.base).asInstanceOf[Q]).asInstanceOf[YYQuery[U]]
+      // }
+      case wq: WrappingQuery[_, _] => 
+        if (wq.isInstanceOf[BaseJoinQuery[_, _, _, _]]) {
+          type U1 = Any
+          type U2 = Any
+          type Q = Query[(Rep[U1], Rep[U2]), (U1, U2)]
+          YYQuery.fromJoinQuery(new WrappingQuery[Rep[U], U](transformedNode, wq.base).asInstanceOf[Q]).asInstanceOf[YYQuery[U]]
+        }
+        else
+          YYQuery.fromQuery(new WrappingQuery[Rep[U], U](transformedNode, wq.base))
+      case nwq: NonWrappingQuery[_, _] => YYQuery.fromQuery(new NonWrappingQuery[Rep[U], U](transformedNode, nwq.unpackable))
+    }
+    // YYQuery.fromQuery(query match {
+    //   case wq: WrappingQuery[_, _] => new WrappingQuery[Rep[U], U](transformedNode, wq.base)
+    //   case nwq: NonWrappingQuery[_, _] => new NonWrappingQuery[Rep[U], U](transformedNode, nwq.unpackable)
+    // })
   }
 
   def getShallow: scala.slick.shadow.Shallow.Query[U] = new scala.slick.shadow.lifting.TransferQuery[U](this, null, null)
